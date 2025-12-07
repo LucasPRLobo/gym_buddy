@@ -1,0 +1,23 @@
+# Core dependencies
+numpy>=1.23.0
+opencv-python>=4.7.0.72
+mediapipe>=0.10.8
+
+# Data models / utilities
+pydantic>=2.0.0
+joblib>=1.3.0
+
+# Machine learning (for future exercise analysis model)
+scikit-learn>=1.2.0
+xgboost>=1.7.6
+
+# Visualization / debug (optional but recommended)
+matplotlib>=3.7.0
+
+# API framework (optional for later)
+fastapi>=0.110.0
+uvicorn>=0.24.0
+
+# Type checking / dev tools (optional)
+mypy>=1.5.0
+black>=24.3.0
