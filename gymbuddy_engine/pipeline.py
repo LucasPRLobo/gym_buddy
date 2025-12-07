@@ -34,3 +34,30 @@ def process_exercise_video(video_path: str, exercise: str, coach_id: str):
         "user_overlay_video": user_overlay_path,
         "ideal_motion_video": ideal_motion_path,
     }
+
+
+from gymbuddy_engine.analysis.model_inference import SquatModel
+
+squat_model = SquatModel("models/squat_model.pkl")
+
+def process_exercise_video_with_quality(video_path: str, exercise: str, coach_id: str):
+    # 1. load frames, 2. extract pose (you already have this):
+    frames, fps = load_video_frames(video_path, target_fps=30)
+    estimator = PoseEstimator(model_complexity=1)
+    pose_seq = estimator.extract_pose_from_frames(frames, fps=fps, exercise=exercise)
+
+    # 3. analysis via ML model (for squat only, for now)
+    if exercise == "squat":
+        pred = squat_model.analyze(pose_seq)
+    else:
+        raise NotImplementedError("Only squat supported for now")
+
+    # 4. overlay video
+    user_overlay_path = generate_overlay_video(frames, pose_seq, "outputs/user_overlay.mp4")
+
+    # 5. (later) use coach module to turn pred into persona feedback text
+
+    return {
+        "prediction": pred,
+        "user_overlay_video": user_overlay_path,
+    }
