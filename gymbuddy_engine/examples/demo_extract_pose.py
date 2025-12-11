@@ -34,7 +34,7 @@ def demo_extract_pose(video_path: str):
     project_root = Path(__file__).resolve().parents[2]
     output_dir = project_root / "outputs"
     output_dir.mkdir(exist_ok=True)
-    output_path = output_dir / "squat_overlay.mp4"
+    output_path = output_dir / "barbell_biceps_curl_overlay.mp4"
 
     print("Generating overlay video at:", output_path)
     generate_overlay_video(frames, pose_seq, str(output_path))
@@ -46,7 +46,7 @@ def demo_extract_pose(video_path: str):
 if __name__ == "__main__":
     this_file = Path(__file__).resolve()
     project_root = this_file.parents[2]
-    video_path = project_root / "videos" / "squat_demo.mp4"
+    video_path = project_root / "videos" / "barbell_biceps_curl.mp4"
 
     print("Using video:", video_path)
     demo_extract_pose(str(video_path))
