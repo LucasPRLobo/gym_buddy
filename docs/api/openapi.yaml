@@ -1,0 +1,602 @@
+openapi: 3.0.3
+info:
+  title: Gym Buddy API (MVP)
+  version: 0.1.0
+  description: |
+    REST contract for Gym Buddy v1. Supports profiles, sessions (solo/group),
+    coach voice selection, scheduling, media upload, inference, feedback, and
+    gamification endpoints.
+servers:
+  - url: https://api.gymbuddy.local
+paths:
+  /profile:
+    get:
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+    put:
+      summary: Update profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /coach_voices:
+    get:
+      summary: List available coach voices/personas
+      responses:
+        "200":
+          description: List of voices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  voices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CoachVoice"
+
+  /sessions:
+    post:
+      summary: Create a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionCreate"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /sessions/{id}:
+    get:
+      summary: Get session state
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /sessions/{id}/join:
+    post:
+      summary: Join a session
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Joined
+
+  /sessions/{id}/leave:
+    post:
+      summary: Leave a session
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Left
+
+  /sessions/{id}/voice:
+    patch:
+      summary: Update session coach voice (host only)
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                coach_voice_id:
+                  type: string
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /sessions/{id}/participant_voice:
+    post:
+      summary: Set participant override (if allowed)
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                coach_voice_id:
+                  type: string
+      responses:
+        "200":
+          description: Saved
+
+  /sessions/{id}/event:
+    post:
+      summary: Append session event (exercise set / feedback)
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionEvent"
+      responses:
+        "200":
+          description: Event recorded
+
+  /groups:
+    post:
+      summary: Create a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupCreate"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{id}/voice:
+    patch:
+      summary: Update group coach voice
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                coach_voice_id:
+                  type: string
+      responses:
+        "200":
+          description: Updated group
+
+  /schedule:
+    get:
+      summary: List scheduled sessions for user
+      responses:
+        "200":
+          description: Schedule entries
+    post:
+      summary: Create scheduled entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleEntry"
+      responses:
+        "201":
+          description: Created
+
+  /media/sign:
+    post:
+      summary: Get signed URL for upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                mime:
+                  type: string
+      responses:
+        "200":
+          description: Signed URLs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_url:
+                    type: string
+                  file_url:
+                    type: string
+
+  /infer/exercise:
+    post:
+      summary: Exercise recognition from video
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                clip_url:
+                  type: string
+      responses:
+        "200":
+          description: Exercise prediction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exercise_id:
+                    type: string
+                  confidence:
+                    type: number
+                  reps:
+                    type: integer
+                    nullable: true
+
+  /infer/quality:
+    post:
+      summary: Quality and form scoring from video
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                clip_url:
+                  type: string
+                exercise_id:
+                  type: string
+                  nullable: true
+                coach_voice_id:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Quality score and joints
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quality_score:
+                    type: number
+                  top_joints:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/JointDeviation"
+                  tempo_tag:
+                    type: string
+
+  /feedback:
+    post:
+      summary: Generate textual feedback (LLM)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exercise_id:
+                  type: string
+                quality_score:
+                  type: number
+                top_joints:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/JointDeviation"
+                tempo_tag:
+                  type: string
+                tone:
+                  type: string
+                coach_voice_id:
+                  type: string
+                  nullable: true
+                goal:
+                  type: string
+                streak:
+                  type: integer
+                xp_delta:
+                  type: integer
+      responses:
+        "200":
+          description: Feedback text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+                  audio_url:
+                    type: string
+                    nullable: true
+
+  /progress:
+    get:
+      summary: Get XP, level, streak, badges, history
+      responses:
+        "200":
+          description: Progress
+
+  /leaderboard:
+    get:
+      summary: Get leaderboard (challenge or global)
+      parameters:
+        - in: query
+          name: challenge_id
+          schema:
+            type: string
+            nullable: true
+      responses:
+        "200":
+          description: Leaderboard
+
+components:
+  parameters:
+    SessionId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+    GroupId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    CoachVoice:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tone:
+          type: string
+        locale:
+          type: string
+        persona_tags:
+          type: array
+          items:
+            type: string
+        supports_audio:
+          type: boolean
+        supports_video:
+          type: boolean
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+        sports:
+          type: array
+          items:
+            type: string
+        goals:
+          type: string
+        coach_tone:
+          type: string
+        default_coach_voice_id:
+          type: string
+        per_sport_overrides:
+          type: object
+          additionalProperties:
+            type: string
+        solo_override:
+          type: string
+          nullable: true
+        level:
+          type: integer
+        streak:
+          type: integer
+        xp:
+          type: integer
+
+    ProfileUpdate:
+      type: object
+      properties:
+        sports:
+          type: array
+          items:
+            type: string
+        goals:
+          type: string
+        coach_tone:
+          type: string
+        default_coach_voice_id:
+          type: string
+        per_sport_overrides:
+          type: object
+          additionalProperties:
+            type: string
+        solo_override:
+          type: string
+          nullable: true
+
+    SessionCreate:
+      type: object
+      required: [type, sport]
+      properties:
+        type:
+          type: string
+          enum: [solo, group]
+        sport:
+          type: string
+        coach_voice_id:
+          type: string
+          nullable: true
+        start_at:
+          type: string
+          format: date-time
+          nullable: true
+        allow_personal_voice_override:
+          type: boolean
+          default: false
+        planned_exercises:
+          type: array
+          items:
+            type: string
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        sport:
+          type: string
+        coach_voice_id:
+          type: string
+        allow_personal_voice_override:
+          type: boolean
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionEvent"
+
+    Participant:
+      type: object
+      properties:
+        user_id:
+          type: string
+        display_name:
+          type: string
+        coach_voice_id:
+          type: string
+          nullable: true
+
+    SessionEvent:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        participant_id:
+          type: string
+        exercise_id:
+          type: string
+        set_idx:
+          type: integer
+        reps:
+          type: integer
+          nullable: true
+        clip_url:
+          type: string
+          nullable: true
+        quality:
+          type: number
+          nullable: true
+        top_joints:
+          type: array
+          items:
+            $ref: "#/components/schemas/JointDeviation"
+        tempo:
+          type: string
+          nullable: true
+        feedback_text:
+          type: string
+          nullable: true
+        coach_voice_id_used:
+          type: string
+          nullable: true
+        mode:
+          type: string
+          enum: [solo, group]
+
+    JointDeviation:
+      type: object
+      properties:
+        joint:
+          type: string
+        deviation:
+          type: number
+
+    GroupCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        sport:
+          type: string
+          nullable: true
+        coach_voice_id:
+          type: string
+          nullable: true
+        allow_member_override:
+          type: boolean
+          default: false
+
+    Group:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sport:
+          type: string
+          nullable: true
+        coach_voice_id:
+          type: string
+          nullable: true
+        allow_member_override:
+          type: boolean
+
+    ScheduleEntry:
+      type: object
+      properties:
+        session_id:
+          type: string
+          nullable: true
+        sport:
+          type: string
+        coach_voice_id:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [solo, group]
+        start_at:
+          type: string
+          format: date-time
